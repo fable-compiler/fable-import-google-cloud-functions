@@ -1,0 +1,36 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/circulate
+    docker:
+      - image: microsoft/dotnet:1.1-sdk
+    steps:
+      - checkout
+      - run:
+          name: Install Node.JS 6.x
+          command: |
+            curl -sL https://deb.nodesource.com/setup_6.x | bash -
+            apt-get install -y nodejs
+      - restore_cache:
+          key: npm-{{ .Branch }}-{{ checksum "package.json" }}
+      - restore_cache:
+          key: dotnet-{{ .Branch }}-{{ checksum "Fable.Import.Google.Cloud.Functions.fsproj" }}
+      - run:
+          name: Restore dependencies
+          command: |
+            npm install
+            dotnet restore
+      - save_cache:
+          key: npm-{{ .Branch }}-{{ checksum "package.json" }}
+          paths:
+            - "node_modules"
+      - save_cache:
+          key: dotnet-{{ .Branch }}-{{ checksum "Fable.Import.Google.Cloud.Functions.fsproj" }}
+          paths:
+            - "~/.nuget"
+      - run:
+          name: Run tests
+          command: dotnet fable npm-run test
+      - store_artifacts:
+          path: build/
+          destination: build
